@@ -2,7 +2,6 @@ package com.loucaskreger.pickpick;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_P;
 
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -34,8 +33,8 @@ import net.minecraftforge.fml.config.ModConfig;
 public class EventSubscriber {
 
 	private static final KeyBinding pickTool = new KeyBinding(PickPick.MODID + ".key.pickTool", GLFW_KEY_P,
-			"key.categories." + PickPick.MODID);
-	
+			PickPick.MODID + "key.categories.");
+
 	static {
 		ClientRegistry.registerKeyBinding(pickTool);
 	}
@@ -55,31 +54,32 @@ public class EventSubscriber {
 			NonNullList<ItemStack> mainInventory = inventory.mainInventory;
 			Pair<BlockPos, BlockState> blockInfo = getBlockInfo(mc);
 			ToolType effectiveTool = getToolTypeOfBlock(mc.world, blockInfo);
-			//Make this prettier
+			// Make this prettier
 			if (effectiveTool == null) {
 
 				if (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL))
-					mainInventory.forEach(i -> {
+					for (ItemStack i : mainInventory) {
 						if (i.getItem().equals(Items.SHEARS)) {
 							int slotPos = mainInventory.indexOf(i);
 							if (PlayerInventory.isHotbar(slotPos))
 								inventory.currentItem = slotPos;
 							else
 								mc.playerController.pickItem(slotPos);
-
+							break;
 						}
-					});
+					}
 			} else if (effectiveTool != null) {
-				mainInventory.forEach((slot) -> {
-					 Set<ToolType> itemToolTypes = slot.getToolTypes();
-					 if (itemToolTypes.contains(effectiveTool)) {
-						 int slotPos = mainInventory.indexOf(slot);
-							if (PlayerInventory.isHotbar(slotPos))
-								inventory.currentItem = slotPos;
-							else
-								mc.playerController.pickItem(slotPos);
-					 }
-				});
+				for (ItemStack slot : mainInventory) {
+					Set<ToolType> itemToolTypes = slot.getToolTypes();
+					if (itemToolTypes.contains(effectiveTool)) {
+						int slotPos = mainInventory.indexOf(slot);
+						if (PlayerInventory.isHotbar(slotPos))
+							inventory.currentItem = slotPos;
+						else
+							mc.playerController.pickItem(slotPos);
+						break;
+					}
+				}
 			}
 		}
 	}
@@ -92,8 +92,7 @@ public class EventSubscriber {
 			return null;
 		return new Pair<BlockPos, BlockState>(pos, state);
 	}
-	
-	
+
 //	private static Boolean hasCorrectEnchantment(ItemStack item) {
 //		Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(item);
 //		for (Map.Entry<Enchantment, Integer> e : enchantments.entrySet()) {
