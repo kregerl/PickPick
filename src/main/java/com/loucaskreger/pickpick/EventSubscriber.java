@@ -10,9 +10,12 @@ import com.loucaskreger.pickpick.config.Config;
 import com.mojang.datafixers.util.Pair;
 
 import net.minecraft.block.BlockState;
+import net.minecraft.block.FlowingFluidBlock;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.PlayerController;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemTier;
 import net.minecraft.item.Items;
@@ -33,7 +36,7 @@ import net.minecraftforge.fml.config.ModConfig;
 public class EventSubscriber {
 
 	private static final KeyBinding pickTool = new KeyBinding(PickPick.MODID + ".key.pickTool", GLFW_KEY_P,
-			PickPick.MODID + "key.categories.");
+			PickPick.MODID + ".key.categories");
 
 	static {
 		ClientRegistry.registerKeyBinding(pickTool);
@@ -50,36 +53,20 @@ public class EventSubscriber {
 	public static void onClientTick(final ClientTickEvent event) {
 		Minecraft mc = Minecraft.getInstance();
 		if (pickTool.isPressed()) {
+			PlayerController pc = mc.playerController;
 			PlayerInventory inventory = mc.player.inventory;
-			NonNullList<ItemStack> mainInventory = inventory.mainInventory;
 			Pair<BlockPos, BlockState> blockInfo = getBlockInfo(mc);
-			ToolType effectiveTool = getToolTypeOfBlock(mc.world, blockInfo);
-			// Make this prettier
-			if (effectiveTool == null) {
-
-				if (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL))
-					for (ItemStack i : mainInventory) {
-						if (i.getItem().equals(Items.SHEARS)) {
-							int slotPos = mainInventory.indexOf(i);
-							if (PlayerInventory.isHotbar(slotPos))
-								inventory.currentItem = slotPos;
-							else
-								mc.playerController.pickItem(slotPos);
-							break;
-						}
-					}
-			} else if (effectiveTool != null) {
-				for (ItemStack slot : mainInventory) {
-					Set<ToolType> itemToolTypes = slot.getToolTypes();
-					if (itemToolTypes.contains(effectiveTool)) {
-						int slotPos = mainInventory.indexOf(slot);
-						if (PlayerInventory.isHotbar(slotPos))
-							inventory.currentItem = slotPos;
-						else
-							mc.playerController.pickItem(slotPos);
-						break;
-					}
+			ToolType effectiveToolType = getToolTypeOfBlock(mc.world, blockInfo);
+			if (effectiveToolType == null) {
+				
+				if (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL) || blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES)) {
+					pick(inventory, pc, Items.SHEARS);
+				} else if (blockInfo.getSecond().getBlock() instanceof FlowingFluidBlock) {
+					pick(inventory, pc, Items.BUCKET);
 				}
+
+			} else if (effectiveToolType != null) {
+				pick(inventory, pc, effectiveToolType);
 			}
 		}
 	}
@@ -87,12 +74,40 @@ public class EventSubscriber {
 	private static Pair<BlockPos, BlockState> getBlockInfo(Minecraft mc) {
 		BlockPos pos = ((BlockRayTraceResult) mc.objectMouseOver).getPos();
 		BlockState state = mc.world.getBlockState(pos);
-		// Block cant be air
 		if (state.isAir(mc.world, pos))
 			return null;
+		
 		return new Pair<BlockPos, BlockState>(pos, state);
 	}
 
+	private static void pick(PlayerInventory inventory, PlayerController playerController, Item tool) {
+		NonNullList<ItemStack> mainInventory = inventory.mainInventory;
+		for (ItemStack slot : mainInventory) {
+			if (slot.getItem().equals(tool)) {
+				int slotPos = mainInventory.indexOf(slot);
+				if (PlayerInventory.isHotbar(slotPos))
+					inventory.currentItem = slotPos;
+				else
+					playerController.pickItem(slotPos);
+				break;
+			}
+		}
+	}
+
+	private static void pick(PlayerInventory inventory, PlayerController playerController, ToolType toolType) {
+		NonNullList<ItemStack> mainInventory = inventory.mainInventory;
+		for (ItemStack slot : mainInventory) {
+			Set<ToolType> itemToolTypes = slot.getToolTypes();
+			if (itemToolTypes.contains(toolType)) {
+				int slotPos = mainInventory.indexOf(slot);
+				if (PlayerInventory.isHotbar(slotPos))
+					inventory.currentItem = slotPos;
+				else
+					playerController.pickItem(slotPos);
+				break;
+			}
+		}
+	}
 //	private static Boolean hasCorrectEnchantment(ItemStack item) {
 //		Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(item);
 //		for (Map.Entry<Enchantment, Integer> e : enchantments.entrySet()) {
