@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.loucaskreger.pickpick.config.ClientConfig;
 import com.loucaskreger.pickpick.config.Config;
 import com.mojang.datafixers.util.Pair;
 
@@ -59,9 +60,9 @@ public class EventSubscriber {
 			ToolType effectiveToolType = getToolTypeOfBlock(mc.world, blockInfo);
 			if (effectiveToolType == null) {
 				
-				if (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL) || blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES)) {
+				if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL) || blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES))) {
 					pick(inventory, pc, Items.SHEARS);
-				} else if (blockInfo.getSecond().getBlock() instanceof FlowingFluidBlock) {
+				} else if (ClientConfig.bucketFluids.get() && (blockInfo.getSecond().getBlock() instanceof FlowingFluidBlock)) {
 					pick(inventory, pc, Items.BUCKET);
 				}
 
@@ -96,10 +97,12 @@ public class EventSubscriber {
 
 	private static void pick(PlayerInventory inventory, PlayerController playerController, ToolType toolType) {
 		NonNullList<ItemStack> mainInventory = inventory.mainInventory;
+//		HashMap<ItemStack, Integer> possibleTools = new HashMap<>();
 		for (ItemStack slot : mainInventory) {
 			Set<ToolType> itemToolTypes = slot.getToolTypes();
 			if (itemToolTypes.contains(toolType)) {
 				int slotPos = mainInventory.indexOf(slot);
+//				possibleTools.put(slot, slotPos);
 				if (PlayerInventory.isHotbar(slotPos))
 					inventory.currentItem = slotPos;
 				else
@@ -108,11 +111,16 @@ public class EventSubscriber {
 			}
 		}
 	}
-//	private static Boolean hasCorrectEnchantment(ItemStack item) {
+//	private static int getOptimalToolforBlock(ItemStack item, Pair<BlockPos, BlockState> blockInfo) {
 //		Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(item);
 //		for (Map.Entry<Enchantment, Integer> e : enchantments.entrySet()) {
+//			for (String name : ClientConfig.blocksToBeSilkTouched.get()) {
+//				if (name == blockInfo.getSecond().getBlock().getRegistryName().toString()) {
+//					
+//				}
+//			}
 //		}
-//		return false;
+//		return -1;
 //
 //	}
 
