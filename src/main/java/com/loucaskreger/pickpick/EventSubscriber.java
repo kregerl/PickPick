@@ -27,6 +27,7 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ToolType;
 import net.minecraftforge.event.TickEvent.ClientTickEvent;
@@ -56,30 +57,37 @@ public class EventSubscriber {
 	public static void onClientTick(final ClientTickEvent event) {
 		Minecraft mc = Minecraft.getInstance();
 		if (pickTool.isPressed()) {
-			PlayerController pc = mc.playerController;
-			PlayerInventory inventory = mc.player.inventory;
-			if (getBlockInfo(mc) == null) 
-				return;
-			Pair<BlockPos, BlockState> blockInfo = getBlockInfo(mc);
-			ToolType effectiveToolType = getToolTypeOfBlock(mc.world, blockInfo);
-			if (effectiveToolType == null) {
-
-				if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL)
-						|| blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES))) {
-					pick(inventory, pc, Items.SHEARS);
-				} else if (ClientConfig.bucketFluids.get()
-						&& (blockInfo.getSecond().getBlock() instanceof FlowingFluidBlock)) {
-					pick(inventory, pc, Items.BUCKET);
+			RayTraceResult result = ((RayTraceResult) mc.objectMouseOver);
+			if (result.getType() == RayTraceResult.Type.BLOCK) {
+				PlayerController pc = mc.playerController;
+				PlayerInventory inventory = mc.player.inventory;
+				if (getBlockInfo(mc, result) == null) {
+					return;
 				}
+				Pair<BlockPos, BlockState> blockInfo = getBlockInfo(mc, result);
+				ToolType effectiveToolType = getToolTypeOfBlock(mc.world, blockInfo);
+				if (effectiveToolType == null) {
 
-			} else if (effectiveToolType != null) {
-				pick(inventory, pc, mc, blockInfo, effectiveToolType);
+					if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL)
+							|| blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES))) {
+						pick(inventory, pc, Items.SHEARS);
+					} else if (ClientConfig.bucketFluids.get()
+							&& (blockInfo.getSecond().getBlock() instanceof FlowingFluidBlock)) {
+						pick(inventory, pc, Items.BUCKET);
+					}
+
+				} else if (effectiveToolType != null) {
+					pick(inventory, pc, mc, blockInfo, effectiveToolType);
+
+				}
+			} else if (result.getType() == RayTraceResult.Type.ENTITY) {
+				System.out.println("Entity");
 			}
 		}
 	}
 
-	private static Pair<BlockPos, BlockState> getBlockInfo(Minecraft mc) {
-		BlockPos pos = ((BlockRayTraceResult) mc.objectMouseOver).getPos();
+	private static Pair<BlockPos, BlockState> getBlockInfo(Minecraft mc, RayTraceResult result) {
+		BlockPos pos = ((BlockRayTraceResult) result).getPos();
 		BlockState state = mc.world.getBlockState(pos);
 		if (state.isAir(mc.world, pos))
 			return null;
@@ -100,24 +108,28 @@ public class EventSubscriber {
 			}
 		}
 	}
+
 	/**
-	 * Gets all tools in players inventory sorted by highest harvest level and switches to highest item.
+	 * Gets all tools in players inventory sorted by highest harvest level and
+	 * switches to highest item.
+	 * 
 	 * @param inventory
 	 * @param playerController
 	 * @param mc
 	 * @param blockInfo
 	 * @param toolType
 	 */
-	private static void pick(PlayerInventory inventory, PlayerController playerController, Minecraft mc, Pair<BlockPos, BlockState> blockInfo, ToolType toolType) {
+	private static void pick(PlayerInventory inventory, PlayerController playerController, Minecraft mc,
+			Pair<BlockPos, BlockState> blockInfo, ToolType toolType) {
 		NonNullList<ItemStack> mainInventory = inventory.mainInventory;
 		TreeMap<Integer, ItemStack> possibleTools = new TreeMap<Integer, ItemStack>(new Comparator<Integer>() {
-			
+
 			@Override
 			public int compare(Integer i, Integer j) {
 				return j.compareTo(i);
 			}
 		});
-		
+
 		for (ItemStack slot : mainInventory) {
 			Set<ToolType> itemToolTypes = slot.getToolTypes();
 			if (itemToolTypes.contains(toolType)) {
