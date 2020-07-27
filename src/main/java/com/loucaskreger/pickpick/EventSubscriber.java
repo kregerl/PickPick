@@ -2,9 +2,11 @@ package com.loucaskreger.pickpick;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_P;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import com.loucaskreger.pickpick.config.ClientConfig;
 import com.loucaskreger.pickpick.config.Config;
@@ -56,18 +58,22 @@ public class EventSubscriber {
 		if (pickTool.isPressed()) {
 			PlayerController pc = mc.playerController;
 			PlayerInventory inventory = mc.player.inventory;
+			if (getBlockInfo(mc) == null) 
+				return;
 			Pair<BlockPos, BlockState> blockInfo = getBlockInfo(mc);
 			ToolType effectiveToolType = getToolTypeOfBlock(mc.world, blockInfo);
 			if (effectiveToolType == null) {
-				
-				if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL) || blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES))) {
+
+				if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL)
+						|| blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES))) {
 					pick(inventory, pc, Items.SHEARS);
-				} else if (ClientConfig.bucketFluids.get() && (blockInfo.getSecond().getBlock() instanceof FlowingFluidBlock)) {
+				} else if (ClientConfig.bucketFluids.get()
+						&& (blockInfo.getSecond().getBlock() instanceof FlowingFluidBlock)) {
 					pick(inventory, pc, Items.BUCKET);
 				}
 
 			} else if (effectiveToolType != null) {
-				pick(inventory, pc, effectiveToolType);
+				pick(inventory, pc, mc, blockInfo, effectiveToolType);
 			}
 		}
 	}
@@ -77,7 +83,7 @@ public class EventSubscriber {
 		BlockState state = mc.world.getBlockState(pos);
 		if (state.isAir(mc.world, pos))
 			return null;
-		
+
 		return new Pair<BlockPos, BlockState>(pos, state);
 	}
 
@@ -94,35 +100,38 @@ public class EventSubscriber {
 			}
 		}
 	}
-
-	private static void pick(PlayerInventory inventory, PlayerController playerController, ToolType toolType) {
+	/**
+	 * Gets all tools in players inventory sorted by highest harvest level and switches to highest item.
+	 * @param inventory
+	 * @param playerController
+	 * @param mc
+	 * @param blockInfo
+	 * @param toolType
+	 */
+	private static void pick(PlayerInventory inventory, PlayerController playerController, Minecraft mc, Pair<BlockPos, BlockState> blockInfo, ToolType toolType) {
 		NonNullList<ItemStack> mainInventory = inventory.mainInventory;
-//		HashMap<ItemStack, Integer> possibleTools = new HashMap<>();
+		TreeMap<Integer, ItemStack> possibleTools = new TreeMap<Integer, ItemStack>(new Comparator<Integer>() {
+			
+			@Override
+			public int compare(Integer i, Integer j) {
+				return j.compareTo(i);
+			}
+		});
+		
 		for (ItemStack slot : mainInventory) {
 			Set<ToolType> itemToolTypes = slot.getToolTypes();
 			if (itemToolTypes.contains(toolType)) {
-				int slotPos = mainInventory.indexOf(slot);
-//				possibleTools.put(slot, slotPos);
-				if (PlayerInventory.isHotbar(slotPos))
-					inventory.currentItem = slotPos;
-				else
-					playerController.pickItem(slotPos);
-				break;
+				possibleTools.put(slot.getHarvestLevel(toolType, mc.player, blockInfo.getSecond()), slot);
 			}
 		}
+		if (possibleTools.isEmpty())
+			return;
+		int slotPos = mainInventory.indexOf(possibleTools.get(possibleTools.firstKey()));
+		if (PlayerInventory.isHotbar(slotPos))
+			inventory.currentItem = slotPos;
+		else
+			playerController.pickItem(slotPos);
 	}
-//	private static int getOptimalToolforBlock(ItemStack item, Pair<BlockPos, BlockState> blockInfo) {
-//		Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(item);
-//		for (Map.Entry<Enchantment, Integer> e : enchantments.entrySet()) {
-//			for (String name : ClientConfig.blocksToBeSilkTouched.get()) {
-//				if (name == blockInfo.getSecond().getBlock().getRegistryName().toString()) {
-//					
-//				}
-//			}
-//		}
-//		return -1;
-//
-//	}
 
 	private static final HashMap<ToolType, ItemStack> toolBase = new HashMap<>();
 	public static final ToolType SWORD = ToolType.get("sword");
