@@ -47,6 +47,7 @@ import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 
+//1.15.2
 @Mod.EventBusSubscriber(modid = PickPick.MODID)
 public class EventSubscriber {
 	
