@@ -3,6 +3,7 @@ package com.loucaskreger.pickpick;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_P;
 
 
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -16,7 +17,6 @@ import com.loucaskreger.pickpick.config.Config;
 import com.mojang.datafixers.util.Pair;
 
 import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
 import net.minecraft.block.FlowingFluidBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerController;
