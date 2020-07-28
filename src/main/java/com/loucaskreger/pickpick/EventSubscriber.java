@@ -2,6 +2,8 @@ package com.loucaskreger.pickpick;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_P;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,16 +19,25 @@ import net.minecraft.block.FlowingFluidBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerController;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityClassification;
+import net.minecraft.entity.SharedMonsterAttributes;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.entity.passive.CowEntity;
+import net.minecraft.entity.passive.SheepEntity;
 import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemTier;
 import net.minecraft.item.Items;
+import net.minecraft.item.SwordItem;
 import net.minecraft.item.TieredItem;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ToolType;
@@ -38,6 +49,9 @@ import net.minecraftforge.fml.config.ModConfig;
 
 @Mod.EventBusSubscriber(modid = PickPick.MODID)
 public class EventSubscriber {
+	
+	private static final HashMap<ToolType, ItemStack> toolBase = new HashMap<>();
+	public static final ToolType SWORD = ToolType.get("sword");
 
 	private static final KeyBinding pickTool = new KeyBinding(PickPick.MODID + ".key.pickTool", GLFW_KEY_P,
 			PickPick.MODID + ".key.categories");
@@ -58,9 +72,9 @@ public class EventSubscriber {
 		Minecraft mc = Minecraft.getInstance();
 		if (pickTool.isPressed()) {
 			RayTraceResult result = ((RayTraceResult) mc.objectMouseOver);
+			PlayerController pc = mc.playerController;
+			PlayerInventory inventory = mc.player.inventory;
 			if (result.getType() == RayTraceResult.Type.BLOCK) {
-				PlayerController pc = mc.playerController;
-				PlayerInventory inventory = mc.player.inventory;
 				if (getBlockInfo(mc, result) == null) {
 					return;
 				}
@@ -81,10 +95,20 @@ public class EventSubscriber {
 
 				}
 			} else if (result.getType() == RayTraceResult.Type.ENTITY) {
-				System.out.println("Entity");
+				Entity entity = ((EntityRayTraceResult)result).getEntity();
+				if (entity.getClassification(true).equals(EntityClassification.CREATURE) && entity instanceof SheepEntity) {
+					pick(inventory, pc, Items.SHEARS);
+				} else if(entity.getClassification(true).equals(EntityClassification.CREATURE) && entity instanceof CowEntity) {
+					pick(inventory, pc, Items.BUCKET);
+				} else if(entity.getClassification(true).equals(EntityClassification.MONSTER))
+					pick(inventory, pc, mc, null, SWORD);
+
 			}
 		}
 	}
+	
+	
+	
 
 	private static Pair<BlockPos, BlockState> getBlockInfo(Minecraft mc, RayTraceResult result) {
 		BlockPos pos = ((BlockRayTraceResult) result).getPos();
@@ -108,6 +132,7 @@ public class EventSubscriber {
 			}
 		}
 	}
+	
 
 	/**
 	 * Gets all tools in players inventory sorted by highest harvest level and
@@ -119,19 +144,25 @@ public class EventSubscriber {
 	 * @param blockInfo
 	 * @param toolType
 	 */
-	private static void pick(PlayerInventory inventory, PlayerController playerController, Minecraft mc,
-			Pair<BlockPos, BlockState> blockInfo, ToolType toolType) {
+	private static void pick(PlayerInventory inventory, PlayerController playerController, Minecraft mc, Pair<BlockPos, BlockState> blockInfo, ToolType toolType) {
 		NonNullList<ItemStack> mainInventory = inventory.mainInventory;
 		TreeMap<Integer, ItemStack> possibleTools = new TreeMap<Integer, ItemStack>(new Comparator<Integer>() {
 
 			@Override
 			public int compare(Integer i, Integer j) {
-				return j.compareTo(i);
+				return j.compareTo(i) ;
 			}
 		});
-
+		//Working but fix this mess
 		for (ItemStack slot : mainInventory) {
 			Set<ToolType> itemToolTypes = slot.getToolTypes();
+			if (toolType.equals(SWORD)) {
+				if (slot.getItem() instanceof SwordItem && blockInfo == null) {
+					Collection<AttributeModifier> test =((SwordItem) slot.getItem()).getAttributeModifiers(EquipmentSlotType.MAINHAND).get(SharedMonsterAttributes.ATTACK_DAMAGE.getName());
+					AttributeModifier attributeModifier = new ArrayList<AttributeModifier>(test).get(0);
+					possibleTools.put((int) attributeModifier.getAmount(), slot);
+				}
+			}
 			if (itemToolTypes.contains(toolType)) {
 				possibleTools.put(slot.getHarvestLevel(toolType, mc.player, blockInfo.getSecond()), slot);
 			}
@@ -145,8 +176,6 @@ public class EventSubscriber {
 			playerController.pickItem(slotPos);
 	}
 
-	private static final HashMap<ToolType, ItemStack> toolBase = new HashMap<>();
-	public static final ToolType SWORD = ToolType.get("sword");
 	static {
 		toolBase.put(ToolType.PICKAXE, new ItemStack(Items.WOODEN_PICKAXE));
 		toolBase.put(ToolType.SHOVEL, new ItemStack(Items.WOODEN_SHOVEL));
