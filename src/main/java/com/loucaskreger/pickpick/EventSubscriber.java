@@ -2,6 +2,7 @@ package com.loucaskreger.pickpick;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_P;
 
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -15,6 +16,7 @@ import com.loucaskreger.pickpick.config.Config;
 import com.mojang.datafixers.util.Pair;
 
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.FlowingFluidBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerController;
@@ -75,6 +77,7 @@ public class EventSubscriber {
 			RayTraceResult result = ((RayTraceResult) mc.objectMouseOver);
 			PlayerController pc = mc.playerController;
 			PlayerInventory inventory = mc.player.inventory;
+			System.out.println(result.getType().toString());
 			if (result.getType() == RayTraceResult.Type.BLOCK) {
 				if (getBlockInfo(mc, result) == null) {
 					return;
@@ -86,9 +89,6 @@ public class EventSubscriber {
 					if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL)
 							|| blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES))) {
 						pick(inventory, pc, Items.SHEARS);
-					} else if (ClientConfig.bucketFluids.get()
-							&& (blockInfo.getSecond().getBlock() instanceof FlowingFluidBlock)) {
-						pick(inventory, pc, Items.BUCKET);
 					}
 
 				} else if (effectiveToolType != null) {
@@ -104,6 +104,14 @@ public class EventSubscriber {
 				} else if(entity.getClassification(true).equals(EntityClassification.MONSTER))
 					pick(inventory, pc, mc, null, SWORD);
 
+			} else if (result.getType() == RayTraceResult.Type.MISS) {
+				if (getBlockInfo(mc, result) == null) {
+					return;
+				}
+				Pair<BlockPos, BlockState> blockInfo = getBlockInfo(mc, result);
+				if (ClientConfig.bucketFluids.get() && blockInfo.getSecond().getBlock() instanceof FlowingFluidBlock) {
+					pick(inventory, pc, Items.BUCKET);
+				}
 			}
 		}
 	}
