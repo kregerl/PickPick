@@ -1,5 +1,8 @@
 package com.loucaskreger.pickpick;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.loucaskreger.pickpick.config.Config;
 
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -13,6 +16,7 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 @Mod("pickpick")
 public class PickPick {
 	public static final String MODID = "pickpick";
+	public static final Logger LOGGER = LogManager.getLogger();
 
 	public PickPick() {
 		final IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();

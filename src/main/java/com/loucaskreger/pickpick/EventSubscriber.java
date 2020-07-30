@@ -3,16 +3,18 @@ package com.loucaskreger.pickpick;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_P;
 
 
+
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
 
 import com.loucaskreger.pickpick.config.ClientConfig;
 import com.loucaskreger.pickpick.config.Config;
+import com.loucaskreger.pickpick.util.ItemComparator;
+import com.loucaskreger.pickpick.util.ItemInfo;
 import com.mojang.datafixers.util.Pair;
 
 import net.minecraft.block.BlockState;
@@ -51,7 +53,6 @@ import net.minecraftforge.fml.config.ModConfig;
 //1.16.1
 @Mod.EventBusSubscriber(modid = PickPick.MODID)
 public class EventSubscriber {
-	
 	private static final HashMap<ToolType, ItemStack> toolBase = new HashMap<>();
 	public static final ToolType SWORD = ToolType.get("sword");
 
@@ -82,10 +83,10 @@ public class EventSubscriber {
 				}
 				Pair<BlockPos, BlockState> blockInfo = getBlockInfo(mc, result);
 				ToolType effectiveToolType = getToolTypeOfBlock(mc.world, blockInfo);
+
 				if (effectiveToolType == null) {
 
-					if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL)
-							|| blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES))) {
+					if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL) || blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES))) {
 						pick(inventory, pc, Items.SHEARS);
 					}
 
@@ -94,12 +95,12 @@ public class EventSubscriber {
 
 				}
 			} else if (result.getType() == RayTraceResult.Type.ENTITY) {
-				Entity entity = ((EntityRayTraceResult)result).getEntity();
+				Entity entity = ((EntityRayTraceResult) result).getEntity();
 				if (entity.getClassification(true).equals(EntityClassification.CREATURE) && entity instanceof SheepEntity) {
 					pick(inventory, pc, Items.SHEARS);
-				} else if(entity.getClassification(true).equals(EntityClassification.CREATURE) && entity instanceof CowEntity) {
+				} else if (entity.getClassification(true).equals(EntityClassification.CREATURE) && entity instanceof CowEntity) {
 					pick(inventory, pc, Items.BUCKET);
-				} else if(entity.getClassification(true).equals(EntityClassification.MONSTER))
+				} else if (entity.getClassification(true).equals(EntityClassification.MONSTER))
 					pick(inventory, pc, mc, null, SWORD);
 
 			} else if (result.getType() == RayTraceResult.Type.MISS) {
@@ -113,9 +114,6 @@ public class EventSubscriber {
 			}
 		}
 	}
-	
-	
-	
 
 	private static Pair<BlockPos, BlockState> getBlockInfo(Minecraft mc, RayTraceResult result) {
 		BlockPos pos = ((BlockRayTraceResult) result).getPos();
@@ -139,7 +137,6 @@ public class EventSubscriber {
 			}
 		}
 	}
-	
 
 	/**
 	 * Gets all tools in players inventory sorted by highest harvest level and
@@ -153,30 +150,22 @@ public class EventSubscriber {
 	 */
 	private static void pick(PlayerInventory inventory, PlayerController playerController, Minecraft mc, Pair<BlockPos, BlockState> blockInfo, ToolType toolType) {
 		NonNullList<ItemStack> mainInventory = inventory.mainInventory;
-		TreeMap<Integer, ItemStack> possibleTools = new TreeMap<Integer, ItemStack>(new Comparator<Integer>() {
-
-			@Override
-			public int compare(Integer i, Integer j) {
-				return j.compareTo(i) ;
-			}
-		});
-		//Working but fix this mess
-		for (ItemStack slot : mainInventory) {
-			Set<ToolType> itemToolTypes = slot.getToolTypes();
+		List<ItemInfo> tools = new ArrayList<ItemInfo>();
+		for (ItemStack item : inventory.mainInventory) {
 			if (toolType.equals(SWORD)) {
-				if (slot.getItem() instanceof SwordItem && blockInfo == null) {
-					Collection<AttributeModifier> test =((SwordItem) slot.getItem()).getAttributeModifiers(EquipmentSlotType.MAINHAND).get(Attributes.field_233823_f_);
-					AttributeModifier attribute = new ArrayList<AttributeModifier>(test).get(0);
-					possibleTools.put((int) attribute.getAmount(), slot);
+				if (item.getItem() instanceof SwordItem && blockInfo == null) {
+					Collection<AttributeModifier> test =((SwordItem) item.getItem()).getAttributeModifiers(EquipmentSlotType.MAINHAND).get(Attributes.field_233823_f_);
+					AttributeModifier attributeModifier = new ArrayList<AttributeModifier>(test).get(0);
+					tools.add(new ItemInfo(item, mainInventory.indexOf(item), (int) attributeModifier.getAmount()));
 				}
-			}
-			if (itemToolTypes.contains(toolType)) {
-				possibleTools.put(slot.getHarvestLevel(toolType, mc.player, blockInfo.getSecond()), slot);
+			}else {
+				tools.add(new ItemInfo(item, mainInventory.indexOf(item), item.getHarvestLevel(toolType, mc.player, blockInfo.getSecond())));
 			}
 		}
-		if (possibleTools.isEmpty())
+		Collections.sort(tools, new ItemComparator());
+		if (tools.isEmpty())
 			return;
-		int slotPos = mainInventory.indexOf(possibleTools.get(possibleTools.firstKey()));
+		int slotPos = tools.get(0).getItemPos();
 		if (PlayerInventory.isHotbar(slotPos))
 			inventory.currentItem = slotPos;
 		else
@@ -187,7 +176,6 @@ public class EventSubscriber {
 		toolBase.put(ToolType.PICKAXE, new ItemStack(Items.WOODEN_PICKAXE));
 		toolBase.put(ToolType.SHOVEL, new ItemStack(Items.WOODEN_SHOVEL));
 		toolBase.put(ToolType.AXE, new ItemStack(Items.WOODEN_AXE));
-		toolBase.put(ToolType.HOE, new ItemStack(Items.WOODEN_HOE));
 		toolBase.put(SWORD, new ItemStack(Items.WOODEN_SWORD));
 	}
 
@@ -201,8 +189,7 @@ public class EventSubscriber {
 			if (hardness > 0.0F) {
 				for (Map.Entry<ToolType, ItemStack> testToolEntry : toolBase.entrySet()) {
 					ItemStack testTool = testToolEntry.getValue();
-					if (testTool != null && !testTool.isEmpty() && testTool.getItem() instanceof TieredItem
-							&& testTool.getDestroySpeed(state) >= ItemTier.WOOD.getEfficiency()) {
+					if (testTool != null && !testTool.isEmpty() && testTool.getItem() instanceof TieredItem && testTool.getDestroySpeed(state) >= ItemTier.WOOD.getEfficiency()) {
 						effectiveTool = testToolEntry.getKey();
 						break;
 					}
