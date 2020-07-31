@@ -88,8 +88,7 @@ public class EventSubscriber {
 
 				if (effectiveToolType == null) {
 
-					if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL)
-							|| blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES))) {
+					if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL) || blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES))) {
 						pick(inventory, pc, Items.SHEARS);
 					}
 
