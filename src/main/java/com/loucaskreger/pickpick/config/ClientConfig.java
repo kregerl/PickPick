@@ -22,12 +22,12 @@ public class ClientConfig {
 		builder.push("Priorities");
 		
 		blocksToBeFortuned = builder.comment(
-				"When the pick tool button is pressed while facing one of the blocks in this list, fortune is given first priority.")
+				"When the pick tool button is pressed while facing one of the blocks in this list, fortune is given first priority. Ex. [\"minecraft:diamond_ore\", \"minecraft:redstone_ore\"")
 				.translation("pickpick.config.blocksToBeFortuned").defineList("blocksToBeFortuned",
 						Arrays.asList(""), i -> i instanceof String);
 
 		blocksToBeSilkTouched = builder.comment(
-				"When the pick tool button is pressed while facing one of the blocks in this list, Silk Touch is given first priority.")
+				"When the pick tool button is pressed while facing one of the blocks in this list, Silk Touch is given first priority. Ex. [\"minecraft:grass\", \"minecraft:ender_chest\"")
 				.translation("pickpick.config.blocksToBeSilkTouched").defineList("blocksToBeSilkTouched",
 						Arrays.asList(""), j -> j instanceof String);
 		builder.pop();
