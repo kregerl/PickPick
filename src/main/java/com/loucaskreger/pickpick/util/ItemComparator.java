@@ -1,7 +1,11 @@
 package com.loucaskreger.pickpick.util;
 
 import java.util.Comparator;
-
+/**
+ * Compares two items by harvest level, then total enchantment level.
+ * @author Loucas
+ *
+ */
 public class ItemComparator implements Comparator<ItemInfo> {
 
 	@Override

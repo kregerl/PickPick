@@ -2,7 +2,6 @@ package com.loucaskreger.pickpick;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import com.loucaskreger.pickpick.config.Config;
 
 
@@ -31,6 +30,6 @@ public class PickPick {
 	}
 
 	private void setupClient(final FMLClientSetupEvent event) {
-
+		
 	}
 }

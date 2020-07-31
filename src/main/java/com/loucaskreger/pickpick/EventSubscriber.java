@@ -2,14 +2,13 @@ package com.loucaskreger.pickpick;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_P;
 
-
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.loucaskreger.pickpick.config.ClientConfig;
 import com.loucaskreger.pickpick.config.Config;
@@ -22,6 +21,7 @@ import net.minecraft.block.FlowingFluidBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerController;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.SharedMonsterAttributes;
@@ -54,6 +54,7 @@ import net.minecraftforge.fml.config.ModConfig;
 @Mod.EventBusSubscriber(modid = PickPick.MODID)
 public class EventSubscriber {
 
+	public static Boolean configLoadedCorrectly;
 	private static final HashMap<ToolType, ItemStack> toolBase = new HashMap<>();
 	public static final ToolType SWORD = ToolType.get("sword");
 
@@ -87,19 +88,21 @@ public class EventSubscriber {
 
 				if (effectiveToolType == null) {
 
-					if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL) || blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES))) {
+					if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL)
+							|| blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES))) {
 						pick(inventory, pc, Items.SHEARS);
 					}
 
 				} else if (effectiveToolType != null) {
 					pick(inventory, pc, mc, blockInfo, effectiveToolType);
-
 				}
 			} else if (result.getType() == RayTraceResult.Type.ENTITY) {
 				Entity entity = ((EntityRayTraceResult) result).getEntity();
-				if (entity.getClassification(true).equals(EntityClassification.CREATURE) && entity instanceof SheepEntity) {
+				if (entity.getClassification(true).equals(EntityClassification.CREATURE)
+						&& entity instanceof SheepEntity) {
 					pick(inventory, pc, Items.SHEARS);
-				} else if (entity.getClassification(true).equals(EntityClassification.CREATURE) && entity instanceof CowEntity) {
+				} else if (entity.getClassification(true).equals(EntityClassification.CREATURE)
+						&& entity instanceof CowEntity) {
 					pick(inventory, pc, Items.BUCKET);
 				} else if (entity.getClassification(true).equals(EntityClassification.MONSTER))
 					pick(inventory, pc, mc, null, SWORD);
@@ -161,14 +164,32 @@ public class EventSubscriber {
 					AttributeModifier attributeModifier = new ArrayList<AttributeModifier>(test).get(0);
 					tools.add(new ItemInfo(item, mainInventory.indexOf(item), (int) attributeModifier.getAmount()));
 				}
-			}else {
-				tools.add(new ItemInfo(item, mainInventory.indexOf(item), item.getHarvestLevel(toolType, mc.player, blockInfo.getSecond())));
+			} else {
+				tools.add(new ItemInfo(item, mainInventory.indexOf(item),
+						item.getHarvestLevel(toolType, mc.player, blockInfo.getSecond())));
 			}
 		}
 		Collections.sort(tools, new ItemComparator());
+		tools = tools.stream().filter(tool -> tool.hasToolType(toolType)).collect(Collectors.toList());
 		if (tools.isEmpty())
 			return;
+
 		int slotPos = tools.get(0).getItemPos();
+		if (ClientConfig.customEnchantmentPriorities.get() && ClientConfig.blocksToBeSilkTouched.get().contains(blockInfo.getSecond().getBlock().getRegistryName().toString())) {
+			for (ItemInfo tool : tools) {
+				if (tool.hasEnchantment(Enchantments.SILK_TOUCH)) {
+					slotPos = tool.getItemPos();
+					break;
+				}
+			}
+		} else if (ClientConfig.customEnchantmentPriorities.get() && ClientConfig.blocksToBeFortuned.get().contains(blockInfo.getSecond().getBlock().getRegistryName().toString())) {
+			for (ItemInfo tool : tools) {
+				if (tool.hasEnchantment(Enchantments.FORTUNE) && tool.hasToolType(toolType)) {
+					slotPos = tool.getItemPos();
+					break;
+				}
+			}
+		}
 		if (PlayerInventory.isHotbar(slotPos))
 			inventory.currentItem = slotPos;
 		else
@@ -192,7 +213,8 @@ public class EventSubscriber {
 			if (hardness > 0.0F) {
 				for (Map.Entry<ToolType, ItemStack> testToolEntry : toolBase.entrySet()) {
 					ItemStack testTool = testToolEntry.getValue();
-					if (testTool != null && !testTool.isEmpty() && testTool.getItem() instanceof TieredItem && testTool.getDestroySpeed(state) >= ItemTier.WOOD.getEfficiency()) {
+					if (testTool != null && !testTool.isEmpty() && testTool.getItem() instanceof TieredItem
+							&& testTool.getDestroySpeed(state) >= ItemTier.WOOD.getEfficiency()) {
 						effectiveTool = testToolEntry.getKey();
 						break;
 					}
