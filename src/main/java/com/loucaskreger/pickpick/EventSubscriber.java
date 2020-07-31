@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.loucaskreger.pickpick.config.ClientConfig;
 import com.loucaskreger.pickpick.config.Config;
@@ -22,6 +23,7 @@ import net.minecraft.block.FlowingFluidBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerController;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
@@ -165,7 +167,27 @@ public class EventSubscriber {
 		Collections.sort(tools, new ItemComparator());
 		if (tools.isEmpty())
 			return;
+		
+		tools = tools.stream().filter(tool -> tool.hasToolType(toolType)).collect(Collectors.toList());
+		if (tools.isEmpty())
+			return;
+
 		int slotPos = tools.get(0).getItemPos();
+		if (ClientConfig.customEnchantmentPriorities.get() && ClientConfig.blocksToBeSilkTouched.get().contains(blockInfo.getSecond().getBlock().getRegistryName().toString())) {
+			for (ItemInfo tool : tools) {
+				if (tool.hasEnchantment(Enchantments.SILK_TOUCH)) {
+					slotPos = tool.getItemPos();
+					break;
+				}
+			}
+		} else if (ClientConfig.customEnchantmentPriorities.get() && ClientConfig.blocksToBeFortuned.get().contains(blockInfo.getSecond().getBlock().getRegistryName().toString())) {
+			for (ItemInfo tool : tools) {
+				if (tool.hasEnchantment(Enchantments.FORTUNE) && tool.hasToolType(toolType)) {
+					slotPos = tool.getItemPos();
+					break;
+				}
+			}
+		}
 		if (PlayerInventory.isHotbar(slotPos))
 			inventory.currentItem = slotPos;
 		else
