@@ -2,27 +2,29 @@ package com.loucaskreger.pickpick;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_P;
 
-
-
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import com.loucaskreger.pickpick.config.ClientConfig;
 import com.loucaskreger.pickpick.config.Config;
 import com.loucaskreger.pickpick.util.ItemComparator;
 import com.loucaskreger.pickpick.util.ItemInfo;
 import com.mojang.datafixers.util.Pair;
-
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.CoralFanBlock;
 import net.minecraft.block.FlowingFluidBlock;
+import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerController;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityClassification;
@@ -55,6 +57,8 @@ import net.minecraftforge.fml.config.ModConfig;
 //1.16.1
 @Mod.EventBusSubscriber(modid = PickPick.MODID)
 public class EventSubscriber {
+
+	public static Boolean configLoadedCorrectly;
 	private static final HashMap<ToolType, ItemStack> toolBase = new HashMap<>();
 	public static final ToolType SWORD = ToolType.get("sword");
 
@@ -87,23 +91,39 @@ public class EventSubscriber {
 				ToolType effectiveToolType = getToolTypeOfBlock(mc.world, blockInfo);
 
 				if (effectiveToolType == null) {
-
-					if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL) || blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES))) {
+					List<Block> shearBlocks = Arrays.asList(Blocks.SEAGRASS, Blocks.TALL_GRASS, Blocks.TALL_SEAGRASS, Blocks.DEAD_BUSH, Blocks.GRASS, Blocks.FERN, Blocks.LARGE_FERN);
+					
+					if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL) || shearBlocks.contains(blockInfo.getSecond().getBlock()))) {
 						pick(inventory, pc, Items.SHEARS);
+						
+					} else if (ClientConfig.fnsTNT.get() && blockInfo.getSecond().getBlock().equals(Blocks.TNT)) {
+						pick(inventory, pc, Items.FLINT_AND_STEEL);
+						
+					} else if (ClientConfig.bonemealSaplings.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.SAPLINGS) || blockInfo.getSecond().getBlock().isIn(BlockTags.TALL_FLOWERS))) {
+						pick(inventory, pc, Items.BONE_MEAL);
+						
+					} else if (blockInfo.getSecond().getMaterial().equals(Material.GLASS) && !blockInfo.getSecond().getBlock().equals(Blocks.BEACON) && !blockInfo.getSecond().getBlock().equals(Blocks.CONDUIT)) {
+						pick(inventory, pc, mc, blockInfo, ClientConfig.stTool.get().toolType(), Enchantments.SILK_TOUCH);
+						
+					} else if (blockInfo.getSecond().getBlock() instanceof CoralFanBlock) {
+						pick(inventory, pc, mc, blockInfo, ToolType.PICKAXE, Enchantments.SILK_TOUCH);
 					}
-
+					
 				} else if (effectiveToolType != null) {
-					pick(inventory, pc, mc, blockInfo, effectiveToolType);
-
+					pick(inventory, pc, mc, blockInfo, effectiveToolType, null);
 				}
 			} else if (result.getType() == RayTraceResult.Type.ENTITY) {
 				Entity entity = ((EntityRayTraceResult) result).getEntity();
 				if (entity.getClassification(true).equals(EntityClassification.CREATURE) && entity instanceof SheepEntity) {
 					pick(inventory, pc, Items.SHEARS);
+					
 				} else if (entity.getClassification(true).equals(EntityClassification.CREATURE) && entity instanceof CowEntity) {
 					pick(inventory, pc, Items.BUCKET);
-				} else if (entity.getClassification(true).equals(EntityClassification.MONSTER))
-					pick(inventory, pc, mc, null, SWORD);
+					
+				} else if (entity.getClassification(true).equals(EntityClassification.MONSTER)) {
+					pick(inventory, pc, mc, null, SWORD, null);
+					
+				} 
 
 			} else if (result.getType() == RayTraceResult.Type.MISS) {
 				if (getBlockInfo(mc, result) == null) {
@@ -125,6 +145,9 @@ public class EventSubscriber {
 
 		return new Pair<BlockPos, BlockState>(pos, state);
 	}
+	
+	
+	
 
 	private static void pick(PlayerInventory inventory, PlayerController playerController, Item tool) {
 		NonNullList<ItemStack> mainInventory = inventory.mainInventory;
@@ -150,7 +173,7 @@ public class EventSubscriber {
 	 * @param blockInfo
 	 * @param toolType
 	 */
-	private static void pick(PlayerInventory inventory, PlayerController playerController, Minecraft mc, Pair<BlockPos, BlockState> blockInfo, ToolType toolType) {
+	private static void pick(PlayerInventory inventory, PlayerController playerController, Minecraft mc, Pair<BlockPos, BlockState> blockInfo, ToolType toolType, Enchantment e) {
 		NonNullList<ItemStack> mainInventory = inventory.mainInventory;
 		List<ItemInfo> tools = new ArrayList<ItemInfo>();
 		for (ItemStack item : inventory.mainInventory) {
@@ -160,37 +183,48 @@ public class EventSubscriber {
 					AttributeModifier attributeModifier = new ArrayList<AttributeModifier>(test).get(0);
 					tools.add(new ItemInfo(item, mainInventory.indexOf(item), (int) attributeModifier.getAmount()));
 				}
-			}else {
-				tools.add(new ItemInfo(item, mainInventory.indexOf(item), item.getHarvestLevel(toolType, mc.player, blockInfo.getSecond())));
+			} else {
+				tools.add(new ItemInfo(item, mainInventory.indexOf(item),
+						item.getHarvestLevel(toolType, mc.player, blockInfo.getSecond())));
 			}
 		}
 		Collections.sort(tools, new ItemComparator());
-		if (tools.isEmpty())
+		int slotPos;
+		if (e != null) {
+			slotPos = checkForEnchantment(tools, e, inventory);
+			moveItem(inventory, playerController, slotPos);
 			return;
-		
+		}
 		tools = tools.stream().filter(tool -> tool.hasToolType(toolType)).collect(Collectors.toList());
 		if (tools.isEmpty())
 			return;
-
-		int slotPos = tools.get(0).getItemPos();
-		if (ClientConfig.customEnchantmentPriorities.get() && ClientConfig.blocksToBeSilkTouched.get().contains(blockInfo.getSecond().getBlock().getRegistryName().toString())) {
-			for (ItemInfo tool : tools) {
-				if (tool.hasEnchantment(Enchantments.SILK_TOUCH)) {
-					slotPos = tool.getItemPos();
-					break;
-				}
-			}
-		} else if (ClientConfig.customEnchantmentPriorities.get() && ClientConfig.blocksToBeFortuned.get().contains(blockInfo.getSecond().getBlock().getRegistryName().toString())) {
-			for (ItemInfo tool : tools) {
-				if (tool.hasEnchantment(Enchantments.FORTUNE) && tool.hasToolType(toolType)) {
-					slotPos = tool.getItemPos();
-					break;
-				}
+		
+		slotPos = tools.get(0).getItemPos();
+		if (ClientConfig.enableSilkTouch.get() && ClientConfig.blocksToBeSilkTouched.get().contains(blockInfo.getSecond().getBlock().getRegistryName().toString())) {
+			slotPos = checkForEnchantment(tools, Enchantments.SILK_TOUCH, inventory);
+		} else if (ClientConfig.enableFortune.get() && ClientConfig.blocksToBeFortuned.get().contains(blockInfo.getSecond().getBlock().getRegistryName().toString())) {
+			slotPos = checkForEnchantment(tools, Enchantments.FORTUNE, inventory);
+		} 
+		
+		moveItem(inventory, playerController, slotPos);
+	}
+	
+	private static int checkForEnchantment(List<ItemInfo> tools, Enchantment e, PlayerInventory inventory) {
+		int slotPos = inventory.currentItem;
+		for (ItemInfo tool : tools) {
+			if (tool.hasEnchantment(e)) {
+				slotPos = tool.getItemPos();
+				break;
 			}
 		}
+		return slotPos;
+	}
+	
+	
+	private static void moveItem(PlayerInventory inventory, PlayerController playerController, int slotPos) {
 		if (PlayerInventory.isHotbar(slotPos))
 			inventory.currentItem = slotPos;
-		else
+		else 
 			playerController.pickItem(slotPos);
 	}
 
@@ -198,6 +232,7 @@ public class EventSubscriber {
 		toolBase.put(ToolType.PICKAXE, new ItemStack(Items.WOODEN_PICKAXE));
 		toolBase.put(ToolType.SHOVEL, new ItemStack(Items.WOODEN_SHOVEL));
 		toolBase.put(ToolType.AXE, new ItemStack(Items.WOODEN_AXE));
+		toolBase.put(ToolType.HOE, new ItemStack(Items.WOODEN_HOE));
 		toolBase.put(SWORD, new ItemStack(Items.WOODEN_SWORD));
 	}
 

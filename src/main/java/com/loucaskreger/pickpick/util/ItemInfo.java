@@ -1,5 +1,6 @@
 package com.loucaskreger.pickpick.util;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -94,6 +95,12 @@ public class ItemInfo {
 	public int getHarvestLevel() {
 		return harvestLevel;
 	}
+	public void setToolType(ToolType toolType) {
+		Set<ToolType> s =  new HashSet<ToolType>();
+		s.add(toolType);
+		this.toolTypes = s;
+	}
+	
 	/**
 	 * Returns a map of the items enchantments
 	 * @return
