@@ -3,7 +3,6 @@ package com.loucaskreger.pickpick.config;
 import net.minecraftforge.common.ToolType;
 
 public enum ToolPreferenceEnum {
-	ANY (ToolType.get("any")),
 	PICKAXE (ToolType.get("pickaxe")),
 	AXE (ToolType.get("axe")),
 //	HOE (ToolType.get("hoe")),

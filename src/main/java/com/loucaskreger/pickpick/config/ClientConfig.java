@@ -31,7 +31,7 @@ public class ClientConfig {
 		bonemealSaplings = builder.comment("If false, pick tool will not switch to bone meal when facing a sapling.").translation("pickpick.config.fnsTNT").define("bonemealSaplings", true);
 		
 		builder.push("Preferences");
-		stTool = builder.comment("Pick tool will choose the following tool type, with silk touch, when pressed facing glass, glass panes, glowstone and sea lanterns. If ANY is chosen, the first tool found in your inventory with silk touch will be used.").translation("pickpick.config.stTool").defineEnum("stTool", ToolPreferenceEnum.ANY);
+		stTool = builder.comment("Pick tool will choose the following tool type, with silk touch, when pressed facing glass, glass panes, glowstone and sea lanterns.").translation("pickpick.config.stTool").defineEnum("stTool", ToolPreferenceEnum.PICKAXE);
 		
 		builder.push("Silk Touch");
 		enableSilkTouch	= builder.comment("If true, pick tool will use the list below will be used to determine if a block should be silk touched.").translation("pickpicik.config.enableSilkTouch").define("enableSilkTouch", false);

@@ -191,7 +191,7 @@ public class EventSubscriber {
 		}
 		Collections.sort(tools, new ItemComparator());
 		int slotPos;
-		if (ClientConfig.stTool.get().toolType().equals(ToolType.get("any")) || e != null) {
+		if (e != null) {
 			slotPos = checkForEnchantment(tools, e, inventory);
 			moveItem(inventory, playerController, slotPos);
 			return;
