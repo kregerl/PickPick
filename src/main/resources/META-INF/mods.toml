@@ -3,7 +3,7 @@ loaderVersion="[31,)"
 
 [[mods]]
 	modId="pickpick" #mandatory
-	version="${file.jarVersion}"
+	version="1.1.1"
 	displayName="Pick Pick"
 	displayURL="https://www.curseforge.com/minecraft/mc-mods/pick-pick"
 	issueTrackerUrl="https://github.com/kregerl/PickPick/issues"
