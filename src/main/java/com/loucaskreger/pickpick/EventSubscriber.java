@@ -95,14 +95,13 @@ public class EventSubscriber {
 					if (ClientConfig.shearWool.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.WOOL) || blockInfo.getSecond().getBlock().isIn(BlockTags.LEAVES) || shearBlocks.contains(blockInfo.getSecond().getBlock()))) {
 						pick(inventory, pc, Items.SHEARS);
 						
-					} else if (blockInfo.getSecond().getBlock().equals(Blocks.TNT)) {
+					} else if (ClientConfig.fnsTNT.get() && blockInfo.getSecond().getBlock().equals(Blocks.TNT)) {
 						pick(inventory, pc, Items.FLINT_AND_STEEL);
 						
-					} else if (blockInfo.getSecond().getBlock().isIn(BlockTags.SAPLINGS) || blockInfo.getSecond().getBlock().isIn(BlockTags.TALL_FLOWERS)) {
+					} else if (ClientConfig.bonemealSaplings.get() && (blockInfo.getSecond().getBlock().isIn(BlockTags.SAPLINGS) || blockInfo.getSecond().getBlock().isIn(BlockTags.TALL_FLOWERS))) {
 						pick(inventory, pc, Items.BONE_MEAL);
 						
 					} else if (blockInfo.getSecond().getMaterial().equals(Material.GLASS) && !blockInfo.getSecond().getBlock().equals(Blocks.BEACON) && !blockInfo.getSecond().getBlock().equals(Blocks.CONDUIT)) {
-						//Remove beacons and conduit from this.
 						pick(inventory, pc, mc, blockInfo, ClientConfig.stTool.get().toolType(), Enchantments.SILK_TOUCH);
 						
 					} else if (blockInfo.getSecond().getBlock() instanceof CoralFanBlock) {
@@ -224,7 +223,6 @@ public class EventSubscriber {
 	
 	
 	private static void moveItem(PlayerInventory inventory, PlayerController playerController, int slotPos) {
-		
 		if (PlayerInventory.isHotbar(slotPos))
 			inventory.currentItem = slotPos;
 		else 
