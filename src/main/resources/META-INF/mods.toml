@@ -1,13 +1,14 @@
 modLoader="javafml"
 loaderVersion="[32,)"
+license="MIT"
 
 [[mods]]
 	modId="pickpick" #mandatory
-	version="${file.jarVersion}"
+	version="1.1.0"
 	displayName="Pick Pick"
 	displayURL="https://www.curseforge.com/minecraft/mc-mods/pick-pick"
 	issueTrackerUrl="https://github.com/kregerl/PickPick/issues"
-	logoFile="PickPickLogo.png" 
+	logoFile="PickPickLogo.png"
 	credits=""
 	authors="AreUThreateningMe"
 	description='''
@@ -22,6 +23,6 @@ loaderVersion="[32,)"
 [[dependencies.pickpick]]
     modId="minecraft"
     mandatory=true
-    versionRange="[1.16.1]"
+    versionRange="[1.16.1, 1.16.2]"
     ordering="AFTER"
     side="BOTH"
