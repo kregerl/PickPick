@@ -1,8 +1,6 @@
 package com.loucaskreger.pickpick.config;
 
 import java.util.Arrays;
-
-
 import java.util.List;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
